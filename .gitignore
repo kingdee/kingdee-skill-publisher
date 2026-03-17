@@ -1,0 +1,42 @@
+# Compiled output
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# Skill package files
+*.skill
+*.zip
+
+# Tests (不要提交测试脚本)
+tests/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.venv
+venv/
+ENV/
+
+# Logs
+*.log
+
+# Test coverage
+.coverage
+htmlcov/

@@ -1,0 +1,339 @@
+{
+  "examples": {
+    "financial_bill_query": {
+      "description": "财务凭证查询Skill示例",
+      "api_info": {
+        "api_code": "ar_getBillDetail",
+        "api_name": "应收凭证详情查询",
+        "api_description": "查询应收凭证的详细信息，包括基本信息、分录、附件等",
+        "method": "GET",
+        "form_id": "ar_bill",
+        "module": "应收模块",
+        "version": "5.0.0+",
+        "status": "published",
+        "request_params": [
+          {
+            "name": "billId",
+            "type": "String",
+            "required": true,
+            "description": "凭证ID"
+          },
+          {
+            "name": "expandEntries",
+            "type": "Boolean",
+            "required": false,
+            "default": false,
+            "description": "是否展开分录数据"
+          }
+        ],
+        "return_params": [
+          {
+            "name": "id",
+            "type": "String",
+            "description": "凭证ID"
+          },
+          {
+            "name": "billNo",
+            "type": "String",
+            "description": "凭证编号"
+          },
+          {
+            "name": "customerName",
+            "type": "String",
+            "description": "客户名称"
+          },
+          {
+            "name": "amount",
+            "type": "Decimal",
+            "description": "凭证金额"
+          },
+          {
+            "name": "status",
+            "type": "String",
+            "description": "凭证状态（DRAFT/ISSUED/CONFIRMED/CANCELED）"
+          },
+          {
+            "name": "entries",
+            "type": "Array",
+            "description": "分录列表（当expandEntries为true时返回）"
+          }
+        ],
+        "error_codes": {
+          "602": {
+            "name": "BILL_NOT_FOUND",
+            "description": "凭证不存在"
+          },
+          "403": {
+            "name": "NO_PERMISSION",
+            "description": "无权限查看此凭证"
+          }
+        }
+      },
+      "generated_skill": {
+        "name": "ar-bill-detail-query",
+        "description": "查询应收凭证详情",
+        "usage": {
+          "python": "from scripts.api_call import call_kingdee_api\n\nresult = call_kingdee_api(\n    api_code='ar_getBillDetail',\n    params={\n        'billId': '123456',\n        'expandEntries': True\n    }\n)\n\nif result['success']:\n    bill = result['data']\n    print(f\"凭证号: {bill['billNo']}\")\n    print(f\"客户: {bill['customerName']}\")\n    print(f\"金额: {bill['amount']}\")\nelse:\n    print(f\"查询失败: {result['error_msg']}\")"
+        }
+      }
+    },
+    "supply_chain_order_query": {
+      "description": "供应链订单查询Skill示例",
+      "api_info": {
+        "api_code": "pm_getPurchaseOrderDetail",
+        "api_name": "采购订单详情查询",
+        "api_description": "查询采购订单的详细信息，包括订单头、分录行、收货情况等",
+        "method": "GET",
+        "form_id": "pm_order",
+        "module": "采购管理模块",
+        "version": "5.0.0+",
+        "status": "published",
+        "request_params": [
+          {
+            "name": "orderId",
+            "type": "String",
+            "required": true,
+            "description": "订单ID"
+          },
+          {
+            "name": "includeDetails",
+            "type": "Boolean",
+            "required": false,
+            "default": true,
+            "description": "是否包含分录详情"
+          },
+          {
+            "name": "includeReceiving",
+            "type": "Boolean",
+            "required": false,
+            "default": true,
+            "description": "是否包含收货信息"
+          }
+        ],
+        "return_params": [
+          {
+            "name": "id",
+            "type": "String",
+            "description": "订单ID"
+          },
+          {
+            "name": "orderNo",
+            "type": "String",
+            "description": "订单号"
+          },
+          {
+            "name": "supplierId",
+            "type": "String",
+            "description": "供应商ID"
+          },
+          {
+            "name": "supplierName",
+            "type": "String",
+            "description": "供应商名称"
+          },
+          {
+            "name": "orderDate",
+            "type": "Date",
+            "description": "订单日期"
+          },
+          {
+            "name": "totalAmount",
+            "type": "Decimal",
+            "description": "订单总金额"
+          },
+          {
+            "name": "status",
+            "type": "String",
+            "description": "订单状态（DRAFT/CONFIRMED/PARTIAL_RECEIVED/RECEIVED/CLOSED）"
+          },
+          {
+            "name": "details",
+            "type": "Array",
+            "description": "分录行信息"
+          },
+          {
+            "name": "receivingInfo",
+            "type": "Array",
+            "description": "收货信息"
+          }
+        ],
+        "error_codes": {
+          "602": {
+            "name": "ORDER_NOT_FOUND",
+            "description": "订单不存在"
+          },
+          "403": {
+            "name": "NO_PERMISSION",
+            "description": "无权限查看此订单"
+          }
+        }
+      },
+      "generated_skill": {
+        "name": "pm-purchase-order-query",
+        "description": "查询采购订单详情",
+        "usage": {
+          "python": "from scripts.api_call import call_kingdee_api\n\nresult = call_kingdee_api(\n    api_code='pm_getPurchaseOrderDetail',\n    params={\n        'orderId': '789012',\n        'includeDetails': True,\n        'includeReceiving': True\n    }\n)\n\nif result['success']:\n    order = result['data']\n    print(f\"订单号: {order['orderNo']}\")\n    print(f\"供应商: {order['supplierName']}\")\n    print(f\"订单状态: {order['status']}\")\n    print(f\"总金额: {order['totalAmount']}\")\n    \n    # 处理分录\n    for detail in order.get('details', []):\n        print(f\"  - {detail['materialName']}: {detail['qty']} {detail['unit']}\")\nelse:\n    print(f\"查询失败: {result['error_msg']}\")"
+        }
+      }
+    },
+    "inventory_query": {
+      "description": "库存查询Skill示例",
+      "api_info": {
+        "api_code": "ic_getInventoryBalance",
+        "api_name": "库存余额查询",
+        "api_description": "查询物料的库存余额，包括数量、金额等",
+        "method": "GET",
+        "form_id": "ic_inventory",
+        "module": "库存管理模块",
+        "version": "5.0.0+",
+        "status": "published",
+        "request_params": [
+          {
+            "name": "materialId",
+            "type": "String",
+            "required": true,
+            "description": "物料ID"
+          },
+          {
+            "name": "warehouseId",
+            "type": "String",
+            "required": false,
+            "description": "仓库ID（不填则查所有仓库）"
+          },
+          {
+            "name": "startDate",
+            "type": "Date",
+            "required": false,
+            "description": "查询开始日期"
+          },
+          {
+            "name": "endDate",
+            "type": "Date",
+            "required": false,
+            "description": "查询结束日期"
+          }
+        ],
+        "return_params": [
+          {
+            "name": "materialId",
+            "type": "String",
+            "description": "物料ID"
+          },
+          {
+            "name": "materialCode",
+            "type": "String",
+            "description": "物料编码"
+          },
+          {
+            "name": "materialName",
+            "type": "String",
+            "description": "物料名称"
+          },
+          {
+            "name": "unit",
+            "type": "String",
+            "description": "计量单位"
+          },
+          {
+            "name": "quantity",
+            "type": "Decimal",
+            "description": "库存数量"
+          },
+          {
+            "name": "amount",
+            "type": "Decimal",
+            "description": "库存金额"
+          },
+          {
+            "name": "warehouseInfo",
+            "type": "Array",
+            "description": "按仓库的库存明细"
+          }
+        ]
+      },
+      "generated_skill": {
+        "name": "ic-inventory-balance-query",
+        "description": "查询库存余额",
+        "usage": {
+          "python": "from scripts.api_call import call_kingdee_api\n\nresult = call_kingdee_api(\n    api_code='ic_getInventoryBalance',\n    params={\n        'materialId': '456789'\n    }\n)\n\nif result['success']:\n    inv = result['data']\n    print(f\"物料: {inv['materialName']}\")\n    print(f\"库存数量: {inv['quantity']} {inv['unit']}\")\n    print(f\"库存金额: {inv['amount']}\")\nelse:\n    print(f\"查询失败: {result['error_msg']}\")"
+        }
+      }
+    }
+  },
+  "workflow": {
+    "step1_search_apis": {
+      "description": "第一步：搜索相关API",
+      "user_input": "我想创建一个财务凭证查询的Skill",
+      "claude_action": "publisher.search_apis(keyword='凭证')",
+      "result_example": [
+        {
+          "api_code": "ar_getBillDetail",
+          "api_name": "应收凭证详情",
+          "description": "查询应收凭证信息"
+        },
+        {
+          "api_code": "ar_getBillList",
+          "api_name": "应收凭证列表",
+          "description": "查询应收凭证列表"
+        },
+        {
+          "api_code": "ap_getPaymentDetail",
+          "api_name": "应付凭证详情",
+          "description": "查询应付凭证信息"
+        }
+      ]
+    },
+    "step2_select_api": {
+      "description": "第二步：用户选择API",
+      "user_input": "选择应收凭证详情查询",
+      "selected_api": "ar_getBillDetail"
+    },
+    "step3_create_skill": {
+      "description": "第三步：自动生成Skill",
+      "claude_action": "publisher.create_skill_from_api(api_info)",
+      "output": {
+        "skill_name": "ar-bill-detail-query",
+        "skill_path": "/tmp/kingdee_skills/ar-bill-detail-query",
+        "files_generated": [
+          "SKILL.md",
+          "README.md",
+          "scripts/api_call.py",
+          "scripts/api_client.py",
+          "scripts/__init__.py",
+          "references/api_schema.json",
+          "references/error_codes.json",
+          "references/examples.json",
+          "LICENSE.txt"
+        ]
+      }
+    },
+    "step4_publish": {
+      "description": "第四步：发布Skill",
+      "claude_action": "publisher.publish_skill(skill_dir)",
+      "result": {
+        "success": true,
+        "message": "Skill已准备就绪",
+        "next_steps": [
+          "在SKILL.md中查看完整定义",
+          "在README.md中了解使用方法",
+          "在scripts/api_call.py中添加参数验证",
+          "安装到Claude中使用"
+        ]
+      }
+    }
+  },
+  "configuration_templates": {
+    "env_file": {
+      "description": ".env文件模板",
+      "content": "# 金蝶云苍穹API配置\n# 复制此文件为 .env，填入实际值\n\n# 服务器配置\nKINGDEE_SERVER_URL=https://xxx.kingdee.com:ierp\nKINGDEE_ACCOUNT_ID=your_account_id\nKINGDEE_USER=admin\n\n# 应用凭证（从开放平台获取）\nKINGDEE_APP_ID=your_app_id\nKINGDEE_APP_SECRET=your_app_secret\n\n# 可选：代理配置（如果需要）\n# HTTP_PROXY=http://proxy.example.com:8080\n# HTTPS_PROXY=https://proxy.example.com:8080\n\n# 可选：日志级别\n# LOG_LEVEL=INFO\n"
+    },
+    "docker_compose": {
+      "description": "Docker Compose配置示例",
+      "content": "version: '3.8'\n\nservices:\n  kingdee-skill-publisher:\n    image: python:3.9-slim\n    volumes:\n      - ./kingdee-skill-publisher:/app\n    environment:\n      - KINGDEE_SERVER_URL=${KINGDEE_SERVER_URL}\n      - KINGDEE_APP_ID=${KINGDEE_APP_ID}\n      - KINGDEE_APP_SECRET=${KINGDEE_APP_SECRET}\n      - KINGDEE_ACCOUNT_ID=${KINGDEE_ACCOUNT_ID}\n      - KINGDEE_USER=${KINGDEE_USER:-admin}\n    working_dir: /app\n    command: python -m scripts\n    ports:\n      - \"8080:8080\"\n"
+    },
+    "requirements_txt": {
+      "description": "Python依赖",
+      "content": "requests>=2.28.0\njson5>=0.9.0\npython-dotenv>=0.20.0\nPyYAML>=6.0\n"
+    }
+  }
+}
