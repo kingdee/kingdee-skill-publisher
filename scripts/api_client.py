@@ -4,6 +4,7 @@
 
 import json
 import time
+import uuid
 import hashlib
 import requests
 from typing import Dict, Any, Optional, List
@@ -12,30 +13,62 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _parse_json_response(response: requests.Response) -> Any:
+    """
+    安全解析 JSON 响应，强制使用 UTF-8 编码以避免中文乱码。
+
+    requests 库在 Content-Type 未显式指定 charset 时，会回退到
+    ISO-8859-1，导致中文变为乱码。此函数直接对原始字节做 UTF-8
+    解码后再解析 JSON。
+    """
+    return json.loads(response.content.decode("utf-8"))
+
 class KingdeeAPIClient:
     """金蝶云苍穹OpenAPI客户端"""
     
-    def __init__(self, 
+    # 认证方式常量
+    AUTH_LOGIN_DO = "login_do"   # 经典认证: POST /api/login.do
+    AUTH_OAUTH2 = "oauth2"       # 增强型Token认证: POST /kapi/oauth2/getToken
+
+    def __init__(self,
                  server_url: str,
-                 app_id: str,
-                 app_secret: str,
-                 account_id: str,
-                 user: str = None):
+                 app_id: str = None,
+                 app_secret: str = None,
+                 account_id: str = None,
+                 user: str = None,
+                 auth_type: str = None,
+                 client_id: str = None,
+                 client_secret: str = None,
+                 username: str = None,
+                 language: str = "zh_CN"):
         """
         初始化API客户端
-        
+
         Args:
             server_url: 服务器URL（例：https://xxx.kingdee.com/ierp）
-            app_id: 应用ID
-            app_secret: 应用密钥
-            account_id: 账套ID
-            user: 操作用户（可选）
+            app_id: 应用ID（经典认证必填）
+            app_secret: 应用密钥（经典认证必填）
+            account_id: 账套ID（两种认证均必填）
+            user: 操作用户（经典认证使用，可选）
+            auth_type: 认证方式，"login_do"（默认）或 "oauth2"
+            client_id: OAuth2认证的client_id（增强型认证必填）
+            client_secret: OAuth2认证的AccessToken密钥（增强型认证必填）
+            username: OAuth2认证的用户名/手机号（增强型认证必填）
+            language: OAuth2认证的语言，默认 "zh_CN"
         """
         self.server_url = server_url.rstrip('/')
         self.app_id = app_id
         self.app_secret = app_secret
         self.account_id = account_id
         self.user = user or "admin"
+
+        # 增强型Token认证参数
+        self.auth_type = auth_type or self.AUTH_LOGIN_DO
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.username = username or user or "admin"
+        self.language = language
         
         self.token = None
         self.token_expire_time = None
@@ -85,27 +118,31 @@ class KingdeeAPIClient:
         raise Exception("无法获取API Token")
     
     def _fetch_token(self) -> Optional[Dict]:
-        """从服务器获取新Token"""
+        """根据认证方式从服务器获取新Token"""
+        if self.auth_type == self.AUTH_OAUTH2:
+            return self._fetch_token_oauth2()
+        return self._fetch_token_login_do()
+
+    def _fetch_token_login_do(self) -> Optional[Dict]:
+        """经典认证：POST /api/login.do"""
         try:
-            # 按 login.do 协议获取 access_token
             token_url = f"{self.server_url}/api/login.do"
-            
             payload = {
                 "user": self.user,
                 "appId": self.app_id,
                 "appSecret": self.app_secret,
                 "accountId": self.account_id,
             }
-            
+
             response = requests.post(
                 token_url,
                 json=payload,
                 verify=True,
                 timeout=30
             )
-            
+
             if response.status_code == 200:
-                result = response.json()
+                result = _parse_json_response(response)
                 data = result.get("data", {}) if isinstance(result, dict) else {}
                 access_token = data.get("access_token") if isinstance(data, dict) else None
 
@@ -129,9 +166,60 @@ class KingdeeAPIClient:
             else:
                 logger.error(f"Token获取失败 (HTTP {response.status_code}): {response.text}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"Token获取异常: {e}")
+            return None
+
+    def _fetch_token_oauth2(self) -> Optional[Dict]:
+        """增强型Token认证：POST /kapi/oauth2/getToken"""
+        try:
+            token_url = f"{self.server_url}/kapi/oauth2/getToken"
+            payload = {
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "username": self.username,
+                "accountId": self.account_id,
+                "nonce": str(uuid.uuid4()),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "language": self.language,
+            }
+
+            response = requests.post(
+                token_url,
+                json=payload,
+                verify=True,
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                result = _parse_json_response(response)
+                data = result.get("data", {}) if isinstance(result, dict) else {}
+                access_token = data.get("access_token") if isinstance(data, dict) else None
+
+                if access_token:
+                    token_data = {"access_token": access_token}
+
+                    # 兼容服务端返回绝对过期时间戳（毫秒）
+                    expire_time = data.get("expire_time")
+                    if expire_time:
+                        try:
+                            expires_in = int(int(expire_time) / 1000 - time.time())
+                            if expires_in > 0:
+                                token_data["expires_in"] = expires_in
+                        except (ValueError, TypeError):
+                            pass
+
+                    return token_data
+
+                logger.error(f"OAuth2 Token响应缺少 data.access_token: {result}")
+                return None
+            else:
+                logger.error(f"OAuth2 Token获取失败 (HTTP {response.status_code}): {response.text}")
+                return None
+
+        except Exception as e:
+            logger.error(f"OAuth2 Token获取异常: {e}")
             return None
 
     def _extract_multilang_text(self, value: Any) -> str:
@@ -291,7 +379,7 @@ class KingdeeAPIClient:
                 
                 # 处理响应
                 if response.status_code == 200:
-                    result = response.json()
+                    result = _parse_json_response(response)
                     
                     # 检查Token是否过期
                     if result.get('error_code') == 401:
@@ -425,7 +513,7 @@ class KingdeeAPIClient:
                     'apis': []
                 }
 
-            result = response.json()
+            result = _parse_json_response(response)
             if result.get('error_code') == 401 or result.get('errorCode') == "401":
                 headers["accesstoken"] = self.get_token(force_refresh=True)
                 response = requests.get(
@@ -444,7 +532,7 @@ class KingdeeAPIClient:
                         'total': 0,
                         'apis': []
                     }
-                result = response.json()
+                result = _parse_json_response(response)
 
             if result.get('success') or result.get('status') or result.get('data'):
                 data = result.get('data', {})
@@ -587,7 +675,7 @@ class KingdeeAPIClient:
                     'api_detail': None
                 }
             
-            result = response.json()
+            result = _parse_json_response(response)
             
             # 处理Token过期
             if result.get('error_code') == 401 or result.get('errorCode') == "401":
@@ -607,7 +695,7 @@ class KingdeeAPIClient:
                         'message': f'查询失败: {error_msg}',
                         'api_detail': None
                     }
-                result = response.json()
+                result = _parse_json_response(response)
             
             # 解析响应数据
             # 返回结构: { "data": { "rows": [...] }, "status": true, "errorCode": "" }
@@ -675,7 +763,7 @@ class KingdeeAPIClient:
         normalized = dict(api_detail)
         
         # 1. 提取请求头参数 (headerentryentity)
-        headers = api_detail.get('headerentryentity', [])
+        headers = api_detail.get('headerentryentity') or []
         normalized['request_headers'] = [
             {
                 'name': h.get('headername'),
@@ -685,9 +773,9 @@ class KingdeeAPIClient:
             }
             for h in headers if isinstance(h, dict)
         ]
-        
+
         # 2. 提取URL查询参数 (urlparamentryentity) - 注意：不是 filter_entity
-        url_params = api_detail.get('urlparamentryentity', [])
+        url_params = api_detail.get('urlparamentryentity') or []
         normalized['request_query_params'] = [
             {
                 'name': p.get('urlparamname'),
@@ -700,7 +788,7 @@ class KingdeeAPIClient:
         ]
         
         # 3. 提取Body参数 (bodyentryentity)
-        body_params = api_detail.get('bodyentryentity', [])
+        body_params = api_detail.get('bodyentryentity') or []
         normalized['request_body_params'] = [
             {
                 'name': p.get('paramname'),
@@ -713,9 +801,9 @@ class KingdeeAPIClient:
             }
             for p in body_params if isinstance(p, dict)
         ]
-        
+
         # 4. 提取返回参数 (respentryentity)
-        resp_params = api_detail.get('respentryentity', [])
+        resp_params = api_detail.get('respentryentity') or []
         normalized['response_params'] = [
             {
                 'name': p.get('respparamname'),
@@ -727,9 +815,9 @@ class KingdeeAPIClient:
             }
             for p in resp_params if isinstance(p, dict)
         ]
-        
+
         # 5. 提取错误码定义 (errorcodeentity)
-        error_codes = api_detail.get('errorcodeentity', [])
+        error_codes = api_detail.get('errorcodeentity') or []
         normalized['error_codes'] = [
             {
                 'code': e.get('errorcode'),
@@ -737,10 +825,10 @@ class KingdeeAPIClient:
             }
             for e in error_codes if isinstance(e, dict)
         ]
-        
+
         # 6. 提取其他有用的实体
         # 排序规则
-        orderby_rules = api_detail.get('orderby_entry', [])
+        orderby_rules = api_detail.get('orderby_entry') or []
         normalized['orderby_rules'] = [
             {
                 'field': o.get('order_field'),
@@ -749,9 +837,9 @@ class KingdeeAPIClient:
             }
             for o in orderby_rules if isinstance(o, dict)
         ]
-        
+
         # 操作参数
-        save_params = api_detail.get('saveparamentryentity', [])
+        save_params = api_detail.get('saveparamentryentity') or []
         normalized['save_params'] = [
             {
                 'key': s.get('saveparamkey'),

@@ -468,13 +468,19 @@ API_METHOD = "{method}"
 API_FORM_ID = "{form_id_str}" or None
 
 def get_api_client() -> KingdeeAPIClient:
-    """获取API客户端实例"""
+    """获取API客户端实例，支持经典认证和OAuth2增强型认证"""
+    auth_type = os.getenv('KINGDEE_AUTH_TYPE', 'login_do')
     return KingdeeAPIClient(
-        server_url=os.getenv('KINGDEE_SERVER_URL', 'https://xxx.kingdee.com/ierp'),
+        server_url=os.getenv('KINGDEE_SERVER_URL', ''),
         app_id=os.getenv('KINGDEE_APP_ID'),
         app_secret=os.getenv('KINGDEE_APP_SECRET'),
         account_id=os.getenv('KINGDEE_ACCOUNT_ID'),
-        user=os.getenv('KINGDEE_USER', 'admin')
+        user=os.getenv('KINGDEE_USER', 'admin'),
+        auth_type=auth_type,
+        client_id=os.getenv('KINGDEE_CLIENT_ID'),
+        client_secret=os.getenv('KINGDEE_CLIENT_SECRET'),
+        username=os.getenv('KINGDEE_USERNAME'),
+        language=os.getenv('KINGDEE_LANGUAGE', 'zh_CN'),
     )
 
 def validate_params(params: Dict[str, Any]) -> None:

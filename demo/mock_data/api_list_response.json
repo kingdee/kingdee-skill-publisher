@@ -1,0 +1,130 @@
+{
+  "success": true,
+  "data": {
+    "total": 12,
+    "pageNo": 1,
+    "pageSize": 10,
+    "rows": [
+      {
+        "id": 1001,
+        "apiCode": "user_getList",
+        "apiName": "查询人员列表",
+        "method": "GET",
+        "urlformat": "/app/base/user_getList",
+        "apiDescription": "分页查询人员基础信息，支持按姓名、工号、部门筛选",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-01 10:00:00"
+      },
+      {
+        "id": 1002,
+        "apiCode": "user_enable",
+        "apiName": "启用人员",
+        "method": "POST",
+        "urlformat": "/app/base/user_enable",
+        "apiDescription": "批量启用金蝶云苍穹人员账号，支持按用户ID或工号操作",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-01 10:00:00"
+      },
+      {
+        "id": 1003,
+        "apiCode": "user_disable",
+        "apiName": "禁用人员",
+        "method": "POST",
+        "urlformat": "/app/base/user_disable",
+        "apiDescription": "批量禁用金蝶云苍穹人员账号，支持按用户ID或工号操作",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-01 10:00:00"
+      },
+      {
+        "id": 1004,
+        "apiCode": "dept_getList",
+        "apiName": "查询部门列表",
+        "method": "GET",
+        "urlformat": "/app/base/dept_getList",
+        "apiDescription": "查询组织架构中的部门列表，支持树形结构返回",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-02 09:00:00"
+      },
+      {
+        "id": 1005,
+        "apiCode": "dept_getDetail",
+        "apiName": "查询部门详情",
+        "method": "GET",
+        "urlformat": "/app/base/dept_getDetail",
+        "apiDescription": "根据部门ID查询部门详细信息，包含上下级关系",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-02 09:30:00"
+      },
+      {
+        "id": 1006,
+        "apiCode": "role_getList",
+        "apiName": "查询角色列表",
+        "method": "GET",
+        "urlformat": "/app/base/role_getList",
+        "apiDescription": "查询系统中已配置的角色信息，含权限范围描述",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-03 14:00:00"
+      },
+      {
+        "id": 1007,
+        "apiCode": "user_assignRole",
+        "apiName": "为人员分配角色",
+        "method": "POST",
+        "urlformat": "/app/base/user_assignRole",
+        "apiDescription": "为指定人员批量分配或移除角色权限",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-03 15:00:00"
+      },
+      {
+        "id": 1008,
+        "apiCode": "user_resetPwd",
+        "apiName": "重置人员密码",
+        "method": "POST",
+        "urlformat": "/app/base/user_resetPwd",
+        "apiDescription": "重置指定人员的登录密码，支持批量操作",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-04 10:00:00"
+      },
+      {
+        "id": 1009,
+        "apiCode": "user_getDetail",
+        "apiName": "查询人员详情",
+        "method": "GET",
+        "urlformat": "/app/base/user_getDetail",
+        "apiDescription": "根据用户ID或工号查询人员详细信息，包含角色、部门等",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-04 11:00:00"
+      },
+      {
+        "id": 1010,
+        "apiCode": "user_create",
+        "apiName": "新建人员",
+        "method": "POST",
+        "urlformat": "/app/base/user_create",
+        "apiDescription": "在系统中新建人员账号，设置基本信息、所属部门和初始角色",
+        "appidnumber": "base",
+        "version": "1.0",
+        "apiStatus": "PUBLISHED",
+        "createTime": "2024-06-05 09:00:00"
+      }
+    ]
+  }
+}

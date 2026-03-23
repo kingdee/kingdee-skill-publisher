@@ -5,8 +5,10 @@ description: |
   金蝶云苍穹业务Skill快速发布工具。这是一个元Skill，用于基于金蝶苍穹开放平台已发布的API和MCP服务，快速创建和发布财务凭证查询、供应链订单查询等业务Skill。
   
   使用此Skill时：
-  1. 用户需要配置金蝶苍穹服务器URL和API认证凭证（user、appId、appSecret、accountId）
-  2. Skill通过 `POST {baseUrl}/api/login.do` 获取 `access_token`
+  1. 用户需要配置金蝶苍穹服务器URL和API认证凭证，支持两种认证方式：
+     - 经典认证（默认）：user、appId、appSecret、accountId，通过 `POST {baseUrl}/api/login.do` 获取Token
+     - 增强型Token认证：client_id、client_secret、username、accountId，通过 `POST {baseUrl}/kapi/oauth2/getToken` 获取Token
+  2. Skill自动根据 auth_type 选择认证方式并获取 `access_token`
   3. Claude通过自然语言查询金蝶API清单，用户选择所需API
   4. Claude自动包装成Skill并发布
   5. 未来兼容MCP服务集成
@@ -133,11 +135,13 @@ print(result)
 
 当用户开始使用此Skill时，引导进行以下操作：
 
-**需要收集的信息：**
+**需要收集的信息（根据认证方式选择）：**
+
+**经典认证（默认，auth_type="login_do"）：**
 ```
 金蝶服务器配置：
 ├─ 服务器 URL（必须）
-│  示例：https://xxx.kingdee.com:ierp
+│  示例：https://xxx.kingdee.com/ierp
 │
 ├─ appId（必须）
 │  由金蝶开放平台第三方应用申请
@@ -148,13 +152,36 @@ print(result)
 ├─ accountId（必须）
 │  租户账套ID
 │
-└─ User（必须）
-   当前操作用户，用于 login.do 认证和业务接口调用
+└─ user（可选，默认admin）
+   当前操作用户
 ```
+
+**增强型Token认证（auth_type="oauth2"）：**
+```
+金蝶服务器配置：
+├─ 服务器 URL（必须）
+│
+├─ client_id（必须）
+│  示例：${YOUR_CLIENT_ID}
+│
+├─ client_secret（必须）
+│  AccessToken认证密钥，示例：${YOUR_CLIENT_SECRET}，需妥善保管
+│
+├─ username（必须）
+│  用户名或手机号，示例：${YOUR_USERNAME}
+│
+├─ accountId（必须）
+│  租户账套ID
+│
+└─ language（可选，默认zh_CN）
+   语言设置
+```
+
+> `nonce` 和 `timestamp` 由客户端自动生成，无需配置。
 
 **配置验证步骤：**
 1. 检查服务器连通性
-2. 调用 `POST {baseUrl}/api/login.do` 获取 `access_token`
+2. 根据 `auth_type` 调用对应的Token接口获取 `access_token`
 3. 使用 `Authorization: Bearer {access_token}` 调用测试接口验证权限
 4. 列出可用的API清单（验证查询能力）
 
@@ -524,7 +551,11 @@ result = publisher.create_skill_from_api_id(
 - **请求地址**: `/kapi/v2/{isv}/{appId}/{formId}/{apiCode}`
 - **请求方式**: GET（查询）/ POST（新增/修改）
 
-### 认证方式（当前实现）
+### 认证方式
+
+支持两种认证方式，通过 `auth_type` 参数选择：
+
+#### 方式一：经典认证（auth_type="login_do"，默认）
 - Token获取接口：`POST {baseUrl}/api/login.do`
 - 请求体：
 
@@ -536,6 +567,28 @@ result = publisher.create_skill_from_api_id(
   "accountId": "${config.accountId}"
 }
 ```
+
+所需凭证：`server_url`、`app_id`、`app_secret`、`account_id`、`user`（可选）
+
+#### 方式二：增强型Token认证（auth_type="oauth2"）
+- Token获取接口：`POST {baseUrl}/kapi/oauth2/getToken`
+- 请求体：
+
+```json
+{
+  "client_id": "${config.client_id}",
+  "client_secret": "${config.client_secret}",
+  "username": "${config.username}",
+  "accountId": "${config.accountId}",
+  "nonce": "{{自动生成UUID}}",
+  "timestamp": "{{自动生成当前时间，格式：yyyy-MM-dd HH:mm:ss}}",
+  "language": "${config.language}"
+}
+```
+
+所需凭证：`server_url`、`account_id`、`client_id`、`client_secret`、`username`、`language`（可选，默认 zh_CN）
+
+> `nonce` 和 `timestamp` 由客户端自动生成，无需用户提供。
 
 - 成功响应：从 `data.access_token` 读取访问令牌
 - 业务调用：通过请求头 `Authorization: Bearer {access_token}` 传递Token
@@ -626,9 +679,11 @@ ${skill_name}/
 ## 内部处理流程
 
 ### 凭证初始化
-1. 用户提供服务器信息和API凭证
+1. 用户提供服务器信息和API凭证（并选择 `auth_type`）
 2. 通过 `HEAD {baseUrl}/kapi` 验证基础连通性
-3. 通过 `POST {baseUrl}/api/login.do` 获取初始 `access_token`
+3. 根据 `auth_type` 调用对应Token接口：
+   - `login_do`（默认）：`POST {baseUrl}/api/login.do`
+   - `oauth2`：`POST {baseUrl}/kapi/oauth2/getToken`（nonce/timestamp自动生成）
 4. 将Token缓存在客户端内存中
 5. 使用 `getUserInfo` 等轻量接口验证认证和权限
 

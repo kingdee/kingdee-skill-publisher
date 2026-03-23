@@ -21,20 +21,38 @@ class KingdeeSkillPublisher:
     
     def setup_credentials(self,
                          server_url: str,
-                         app_id: str,
-                         app_secret: str,
                          account_id: str,
-                         user: str = None) -> Dict[str, Any]:
+                         app_id: str = None,
+                         app_secret: str = None,
+                         user: str = None,
+                         auth_type: str = None,
+                         client_id: str = None,
+                         client_secret: str = None,
+                         username: str = None,
+                         language: str = "zh_CN") -> Dict[str, Any]:
         """
         配置和验证金蝶API凭证
-        
+
+        支持两种认证方式：
+
+        经典认证（auth_type="login_do"，默认）：
+            所需参数：server_url, app_id, app_secret, account_id, user
+
+        增强型Token认证（auth_type="oauth2"）：
+            所需参数：server_url, account_id, client_id, client_secret, username
+
         Args:
             server_url: 金蝶服务器URL
-            app_id: 应用ID
-            app_secret: 应用密钥
-            account_id: 账套ID
-            user: 操作用户
-            
+            account_id: 账套ID（两种认证均必填）
+            app_id: 应用ID（经典认证必填）
+            app_secret: 应用密钥（经典认证必填）
+            user: 操作用户（经典认证可选，默认admin）
+            auth_type: 认证方式，"login_do"（默认）或 "oauth2"
+            client_id: OAuth2认证的client_id（增强型认证必填）
+            client_secret: OAuth2认证的AccessToken密钥（增强型认证必填）
+            username: OAuth2认证的用户名/手机号（增强型认证必填）
+            language: OAuth2认证的语言，默认 "zh_CN"
+
         Returns:
             验证结果
         """
@@ -45,7 +63,12 @@ class KingdeeSkillPublisher:
                 app_id=app_id,
                 app_secret=app_secret,
                 account_id=account_id,
-                user=user
+                user=user,
+                auth_type=auth_type,
+                client_id=client_id,
+                client_secret=client_secret,
+                username=username,
+                language=language,
             )
             
             # 验证凭证
